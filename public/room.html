@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Relay Room</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link href="/css/app.css" rel="stylesheet">
+</head>
+<body>
+  <main class="container py-3 py-lg-4">
+    <div class="page-head mb-3">
+      <div>
+        <p class="eyebrow mb-1">Guest Room</p>
+        <h1 id="roomHeading" class="h3 mb-1">Комната</h1>
+        <p id="roomSubheading" class="page-subtitle mb-0">Подключение к Relay...</p>
+      </div>
+      <div class="status-ribbon">
+        <span class="status-pill" id="wsStatus">WS offline</span>
+        <span class="status-pill" id="joinStatus">Not joined</span>
+        <span class="status-pill" id="roomStatusLabel">Waiting</span>
+      </div>
+    </div>
+
+    <div id="pageAlert" class="alert alert-danger d-none compact-alert" role="alert"></div>
+
+    <div class="row g-3 align-items-start">
+      <div class="col-12 col-xxl-9">
+        <section class="glass-card panel-tight mb-3">
+          <div class="panel-head">
+            <div>
+              <p class="section-kicker mb-1">Players</p>
+              <h2 class="panel-title mb-0">Готовность и статус игроков</h2>
+            </div>
+          </div>
+          <div id="playersList" class="players-grid empty-state">Пока никто не подключён.</div>
+        </section>
+
+        <section class="glass-card panel-tight mb-3">
+          <div class="panel-head">
+            <div>
+              <p class="section-kicker mb-1">Game Log</p>
+              <h2 class="panel-title mb-0">Общая игровая история</h2>
+            </div>
+          </div>
+          <div id="gameLog" class="log-list log-scroll empty-state">История хода пока пуста.</div>
+        </section>
+
+        <section class="glass-card panel-tight composer-panel">
+          <section class="composer-card single-composer-card">
+            <div class="composer-head">
+              <h2 class="panel-title mb-0">Ваш draft</h2>
+              <button id="readyButton" class="btn btn-sm btn-outline-light" type="button">Ready</button>
+            </div>
+            <div id="draftNotice" class="draft-notice draft-notice-neutral">
+              <span class="draft-notice-icon" aria-hidden="true"></span>
+              <span id="draftNoticeText">Можно редактировать draft. Когда будете готовы, нажмите Ready.</span>
+            </div>
+            <textarea id="draftInput" class="form-control composer-textarea" placeholder="Опишите действие вашего персонажа."></textarea>
+          </section>
+        </section>
+      </div>
+
+      <div class="col-12 col-xxl-3">
+        <div class="side-stack">
+          <details id="guestToolsDrawer" class="glass-card side-drawer" open>
+            <summary class="drawer-summary">
+              <span>Профиль и комната</span>
+              <span class="tiny-label">свернуть</span>
+            </summary>
+            <div class="drawer-body">
+              <section id="joinPanel" class="tool-block">
+                <div class="tool-block-head">
+                  <h2 class="panel-title mb-0">Вход</h2>
+                </div>
+                <div class="vstack gap-2">
+                  <div>
+                    <label class="form-label compact-label" for="roomIdField">Room ID</label>
+                    <input id="roomIdField" class="form-control form-control-sm" readonly>
+                  </div>
+                  <div>
+                    <label class="form-label compact-label" for="guestName">Name</label>
+                    <input id="guestName" class="form-control form-control-sm" autocomplete="nickname">
+                  </div>
+                  <button id="joinButton" class="btn btn-accent btn-sm" type="button">Join</button>
+                </div>
+              </section>
+
+              <section id="profilePanel" class="tool-block d-none">
+                <div class="tool-block-head">
+                  <h2 class="panel-title mb-0">Профиль</h2>
+                </div>
+                <div class="d-flex gap-2">
+                  <input id="profileNameInput" class="form-control form-control-sm" autocomplete="nickname">
+                  <button id="renameButton" class="btn btn-outline-light btn-sm" type="button">Сменить</button>
+                </div>
+              </section>
+
+              <section class="tool-block">
+                <div class="tool-block-head">
+                  <h2 class="panel-title mb-0">Статус комнаты</h2>
+                </div>
+                <div class="tiny-pair mb-2">
+                  <span>Host</span>
+                  <span id="hostStatusText">not connected</span>
+                </div>
+                <div class="tiny-pair">
+                  <span>State</span>
+                  <span id="roomStatusText">waiting_host</span>
+                </div>
+              </section>
+            </div>
+          </details>
+
+          <details class="glass-card side-drawer side-chat-drawer">
+            <summary class="drawer-summary">
+              <span>OOC Chat</span>
+              <span class="tiny-label">вне игры</span>
+            </summary>
+            <div class="drawer-body">
+              <div id="oocLog" class="chat-list side-chat-list empty-state mb-2">OOC-сообщений пока нет.</div>
+              <form id="oocForm" class="side-chat-form">
+                <textarea id="oocInput" class="form-control form-control-sm side-chat-textarea" placeholder="Сообщение вне игры"></textarea>
+                <button class="btn btn-outline-light btn-sm side-chat-submit" type="submit">Send</button>
+              </form>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/room.js"></script>
+</body>
+</html>

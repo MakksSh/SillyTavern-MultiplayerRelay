@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Relay Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link href="/css/app.css" rel="stylesheet">
+</head>
+<body>
+  <main class="container py-3 py-lg-4">
+    <div class="page-head mb-3">
+      <div>
+        <p class="eyebrow mb-1">Relay Admin</p>
+        <h1 id="roomHeading" class="h3 mb-1">Новая комната</h1>
+        <p id="roomSubheading" class="page-subtitle mb-0">Создайте комнату и подключите SillyTavern к Relay.</p>
+      </div>
+      <div class="status-ribbon">
+        <span class="status-pill" id="wsStatus">WS offline</span>
+        <span class="status-pill" id="authStatus">Locked</span>
+        <span class="status-pill" id="roomStatusLabel">No room</span>
+      </div>
+    </div>
+
+    <div id="pageAlert" class="alert alert-danger d-none compact-alert" role="alert"></div>
+
+    <div class="row g-3 align-items-start">
+      <div class="col-12 col-xxl-9">
+        <section class="glass-card panel-tight mb-3">
+          <div class="panel-head">
+            <div>
+              <p class="section-kicker mb-1">Players</p>
+              <h2 class="panel-title mb-0">Участники комнаты</h2>
+            </div>
+          </div>
+          <div id="playersList" class="players-grid empty-state">Игроки ещё не подключились.</div>
+        </section>
+
+        <section class="glass-card panel-tight mb-3">
+          <div class="panel-head">
+            <div>
+              <p class="section-kicker mb-1">Game Log</p>
+              <h2 class="panel-title mb-0">Общая игровая история</h2>
+            </div>
+          </div>
+          <div id="gameLog" class="log-list log-scroll empty-state">История хода появится после первой генерации.</div>
+        </section>
+
+        <section class="glass-card panel-tight composer-panel">
+          <div class="composer-grid admin-composer-grid">
+            <section class="composer-card">
+              <div class="composer-head">
+                <h2 class="panel-title mb-0">Ваш draft</h2>
+                <button id="adminReadyButton" class="btn btn-sm btn-outline-light" type="button">Ready</button>
+              </div>
+              <textarea id="adminDraft" class="form-control composer-textarea" placeholder="Опишите действие администратора как игрока."></textarea>
+            </section>
+
+            <section class="composer-card">
+              <div class="composer-head">
+                <h2 class="panel-title mb-0">Admin Note</h2>
+              </div>
+              <textarea id="adminNote" class="form-control composer-textarea compact-note" placeholder="Общий комментарий, который уйдёт в Tavern последним блоком."></textarea>
+            </section>
+          </div>
+
+          <div class="action-row mt-3">
+            <button id="sendTurnButton" class="btn btn-accent" type="button">Send to Tavern</button>
+            <button id="regenerateTurnButton" class="btn btn-outline-light" type="button">Regenerate</button>
+            <button id="forceSendButton" class="btn btn-outline-warning" type="button">Force Send</button>
+          </div>
+        </section>
+      </div>
+
+      <div class="col-12 col-xxl-3">
+        <div class="side-stack">
+          <details id="adminToolsDrawer" class="glass-card side-drawer" open>
+            <summary class="drawer-summary">
+              <span>Инструменты комнаты</span>
+              <span class="tiny-label">свернуть</span>
+            </summary>
+            <div class="drawer-body">
+              <section id="loginPanel" class="tool-block">
+                <div class="tool-block-head">
+                  <h2 class="panel-title mb-0">Авторизация</h2>
+                </div>
+                <div class="vstack gap-2">
+                  <div>
+                    <label class="form-label compact-label" for="adminKey">Admin Key</label>
+                    <input id="adminKey" class="form-control form-control-sm" type="password" autocomplete="off" spellcheck="false">
+                  </div>
+                  <div>
+                    <label class="form-label compact-label" for="loginAdminName">Admin Name</label>
+                    <input id="loginAdminName" class="form-control form-control-sm" value="Admin" autocomplete="nickname">
+                  </div>
+                  <button id="loginButton" class="btn btn-accent btn-sm" type="button">Войти</button>
+                </div>
+              </section>
+
+              <section id="profilePanel" class="tool-block d-none">
+                <div class="tool-block-head">
+                  <h2 class="panel-title mb-0">Профиль</h2>
+                </div>
+                <div class="d-flex gap-2">
+                  <input id="profileNameInput" class="form-control form-control-sm" autocomplete="nickname">
+                  <button id="renameButton" class="btn btn-outline-light btn-sm" type="button">Сменить</button>
+                </div>
+              </section>
+
+              <section class="tool-block">
+                <div class="tool-block-head">
+                  <h2 class="panel-title mb-0">Комната</h2>
+                </div>
+                <div class="render-toggle-stack mb-3">
+                  <label class="render-toggle">
+                    <span>
+                      <span class="render-toggle-title">Render HTML</span>
+                      <span class="render-toggle-copy">Рендерить HTML-блоки из Tavern в Game Log.</span>
+                    </span>
+                    <input id="allowHtmlToggle" class="form-check-input" type="checkbox" role="switch">
+                  </label>
+                  <label class="render-toggle">
+                    <span>
+                      <span class="render-toggle-title">Allow Styles</span>
+                      <span class="render-toggle-copy">Разрешить встроенные стили внутри изолированного блока.</span>
+                    </span>
+                    <input id="allowStylesToggle" class="form-check-input" type="checkbox" role="switch">
+                  </label>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label compact-label" for="customRoomIdInput">Custom Room ID</label>
+                  <input id="customRoomIdInput" class="form-control form-control-sm" placeholder="Например, raid7" autocomplete="off" autocapitalize="off" spellcheck="false">
+                </div>
+                <div class="mb-2">
+                  <label class="form-label compact-label" for="roomNameInput">Room Name</label>
+                  <input id="roomNameInput" class="form-control form-control-sm" placeholder="Например, Бархатный рейд" autocomplete="off">
+                </div>
+                <button id="createRoomButton" class="btn btn-outline-light btn-sm w-100 mb-2" type="button">Создать комнату</button>
+                <div class="tiny-pair mb-2">
+                  <span>Host</span>
+                  <span id="hostStatusText">not connected</span>
+                </div>
+                <div class="info-stack">
+                  <div>
+                    <label class="form-label compact-label" for="roomIdField">Room ID</label>
+                    <div class="input-group input-group-sm">
+                      <input id="roomIdField" class="form-control" readonly>
+                      <button class="btn btn-outline-secondary" data-copy-target="roomIdField" type="button">Copy</button>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="form-label compact-label" for="guestUrlField">Guest URL</label>
+                    <div class="input-group input-group-sm">
+                      <input id="guestUrlField" class="form-control" readonly>
+                      <button class="btn btn-outline-secondary" data-copy-target="guestUrlField" type="button">Copy</button>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="form-label compact-label" for="extensionWsUrlField">Extension WS URL</label>
+                    <div class="input-group input-group-sm">
+                      <input id="extensionWsUrlField" class="form-control" readonly>
+                      <button class="btn btn-outline-secondary" data-copy-target="extensionWsUrlField" type="button">Copy</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </details>
+
+          <details class="glass-card side-drawer side-chat-drawer">
+            <summary class="drawer-summary">
+              <span>OOC Chat</span>
+              <span class="tiny-label">вне игры</span>
+            </summary>
+            <div class="drawer-body">
+              <div id="oocLog" class="chat-list side-chat-list empty-state mb-2">OOC-сообщений пока нет.</div>
+              <form id="oocForm" class="side-chat-form">
+                <textarea id="oocInput" class="form-control form-control-sm side-chat-textarea" placeholder="Сообщение вне игры"></textarea>
+                <button class="btn btn-outline-light btn-sm side-chat-submit" type="submit">Send</button>
+              </form>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>
