@@ -234,7 +234,7 @@ function buildTurnMessage(room) {
   const adminNote = room.currentTurn.adminNote.trim();
 
   if (adminNote) {
-    blocks.push(`(OOC:{adminNote})`);
+    blocks.push(`(OOC: ${adminNote})`);
   }
 
   return {

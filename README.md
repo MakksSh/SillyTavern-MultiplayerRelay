@@ -15,7 +15,6 @@
 ## Установка relay
 
 ```bash
-cd relay
 npm install
 cp .env.example .env
 ```
@@ -41,7 +40,6 @@ PUBLIC_BASE_URL=http://localhost:3000
 ## Запуск relay
 
 ```bash
-cd relay
 npm start
 ```
 
